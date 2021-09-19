@@ -124,13 +124,11 @@ void PoolMode::update(float elapsed) {
 	//move camera:
 	{
 		//combine inputs into a move:
-		constexpr float CameraSpeed = 30.0f;
 		glm::vec2 move = glm::vec2(0.0f);
 		if (cam_zoomout.pressed && !cam_zoomin.pressed) move.y = -1.0f;
 		if (!cam_zoomout.pressed && cam_zoomin.pressed) move.y = 1.0f;
 
 		glm::mat4x3 frame = camera->transform->make_local_to_parent();
-		glm::vec3 right = frame[0];
 		//glm::vec3 up = frame[1];
 		glm::vec3 forward = -frame[2];
 

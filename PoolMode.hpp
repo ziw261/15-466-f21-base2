@@ -22,11 +22,13 @@ enum class Ball_Color {
 
 
 struct Ball {
-	Scene::Transform* transform;
-	Ball_Color ball_color = Ball_Color::None;
-	bool is_flower = false;
+	
 	Ball(Ball_Color bc, bool isf, Scene::Transform* ts)
 		: ball_color(bc), is_flower(isf), transform(ts) {}
+
+	Ball_Color ball_color = Ball_Color::None;
+	bool is_flower = false;
+	Scene::Transform* transform = nullptr;
 };
 
 struct Player {
