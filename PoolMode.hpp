@@ -7,6 +7,33 @@
 #include <vector>
 #include <deque>
 
+
+enum class Ball_Color {
+	None,
+	Black,
+	Blue,
+	Brown,
+	Green,
+	Orange,
+	Pink,
+	Red,
+	Yellow,
+};
+
+
+struct Ball {
+	Scene::Transform* transform;
+	Ball_Color ball_color = Ball_Color::None;
+	bool is_flower = false;
+	Ball(Ball_Color bc, bool isf, Scene::Transform* ts)
+		: ball_color(bc), is_flower(isf), transform(ts) {}
+};
+
+struct Player {
+	Scene::Transform* transform;
+
+};
+
 struct PoolMode : Mode {
 	PoolMode();
 	virtual ~PoolMode();
@@ -18,25 +45,21 @@ struct PoolMode : Mode {
 
 	//----- game state -----
 
+	std::vector<Ball> balls;
+
 	//input tracking:
 	struct Button {
 		uint8_t downs = 0;
 		uint8_t pressed = 0;
-	} left, right, down, up;
+	} left, right, down, up, cam_zoomin, cam_zoomout;
 
 	//local copy of the game scene (so code can change it during gameplay):
 	Scene scene;
-
-	//hexapod leg to wobble:
-	Scene::Transform *hip = nullptr;
-	Scene::Transform *upper_leg = nullptr;
-	Scene::Transform *lower_leg = nullptr;
-	glm::quat hip_base_rotation;
-	glm::quat upper_leg_base_rotation;
-	glm::quat lower_leg_base_rotation;
-	float wobble = 0.0f;
 	
 	//camera:
 	Scene::Camera *camera = nullptr;
+
+
+	void loadObjects();
 
 };

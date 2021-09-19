@@ -12,15 +12,15 @@
 
 #include <random>
 
-GLuint hexapod_meshes_for_lit_color_texture_program = 0;
+GLuint pool_meshes_for_lit_color_texture_program = 0;
 Load< MeshBuffer > hexapod_meshes(LoadTagDefault, []() -> MeshBuffer const * {
-	MeshBuffer const *ret = new MeshBuffer(data_path("hexapod.pnct"));
-	hexapod_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
+	MeshBuffer const *ret = new MeshBuffer(data_path("pool_ver2.pnct"));
+	pool_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
 	return ret;
 });
 
-Load< Scene > hexapod_scene(LoadTagDefault, []() -> Scene const * {
-	return new Scene(data_path("hexapod.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
+Load< Scene > pool_scene(LoadTagDefault, []() -> Scene const * {
+	return new Scene(data_path("pool_ver2.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
 		Mesh const &mesh = hexapod_meshes->lookup(mesh_name);
 
 		scene.drawables.emplace_back(transform);
@@ -28,7 +28,7 @@ Load< Scene > hexapod_scene(LoadTagDefault, []() -> Scene const * {
 
 		drawable.pipeline = lit_color_texture_program_pipeline;
 
-		drawable.pipeline.vao = hexapod_meshes_for_lit_color_texture_program;
+		drawable.pipeline.vao = pool_meshes_for_lit_color_texture_program;
 		drawable.pipeline.type = mesh.type;
 		drawable.pipeline.start = mesh.start;
 		drawable.pipeline.count = mesh.count;
@@ -36,20 +36,9 @@ Load< Scene > hexapod_scene(LoadTagDefault, []() -> Scene const * {
 	});
 });
 
-PoolMode::PoolMode() : scene(*hexapod_scene) {
-	//get pointers to leg for convenience:
-	for (auto &transform : scene.transforms) {
-		if (transform.name == "Hip.FL") hip = &transform;
-		else if (transform.name == "UpperLeg.FL") upper_leg = &transform;
-		else if (transform.name == "LowerLeg.FL") lower_leg = &transform;
-	}
-	if (hip == nullptr) throw std::runtime_error("Hip not found.");
-	if (upper_leg == nullptr) throw std::runtime_error("Upper leg not found.");
-	if (lower_leg == nullptr) throw std::runtime_error("Lower leg not found.");
+PoolMode::PoolMode() : scene(*pool_scene) {
 
-	hip_base_rotation = hip->rotation;
-	upper_leg_base_rotation = upper_leg->rotation;
-	lower_leg_base_rotation = lower_leg->rotation;
+	loadObjects();
 
 	//get pointer to camera for convenience:
 	if (scene.cameras.size() != 1) throw std::runtime_error("Expecting scene to have exactly one camera, but it has " + std::to_string(scene.cameras.size()));
@@ -59,59 +48,71 @@ PoolMode::PoolMode() : scene(*hexapod_scene) {
 PoolMode::~PoolMode() {
 }
 
+void PoolMode::loadObjects() {
+	for (auto& transform : scene.transforms) {
+		if (transform.name == "Black_Ball") 
+				balls.push_back(Ball(Ball_Color::Black, false, &transform));
+		else if (transform.name == "Blue_Ball") 
+				balls.push_back(Ball(Ball_Color::Blue, false, &transform));
+		else if	(transform.name == "Brown_Ball")
+				balls.push_back(Ball(Ball_Color::Brown, false, &transform));
+		else if (transform.name == "Blue_Flower")
+				balls.push_back(Ball(Ball_Color::Blue, true, &transform));
+		else if (transform.name == "Brown_Flower")
+				balls.push_back(Ball(Ball_Color::Brown, true, &transform));
+		else if (transform.name == "Green_Ball")
+				balls.push_back(Ball(Ball_Color::Green, false, &transform));
+		else if (transform.name == "Green_Flower")
+				balls.push_back(Ball(Ball_Color::Green, true, &transform));
+		else if (transform.name == "Orange_Ball")
+				balls.push_back(Ball(Ball_Color::Orange, false, &transform));
+		else if (transform.name == "Orange_Flower")
+				balls.push_back(Ball(Ball_Color::Orange, true, &transform));
+		else if (transform.name == "Pink_Ball")
+				balls.push_back(Ball(Ball_Color::Pink, false, &transform));
+		else if (transform.name == "Pink_Flower")
+				balls.push_back(Ball(Ball_Color::Pink, true, &transform));
+		else if (transform.name == "Red_Ball")
+				balls.push_back(Ball(Ball_Color::Red, false, &transform));
+		else if (transform.name == "Red_Flower")
+				balls.push_back(Ball(Ball_Color::Red, true, &transform));
+		else if (transform.name == "Yellow_Ball")
+				balls.push_back(Ball(Ball_Color::Yellow, false, &transform));
+		else if (transform.name == "Yellow_Flower")
+			balls.push_back(Ball(Ball_Color::Yellow, true, &transform));
+	}
+
+	assert(balls.size() == 15);
+}
+
 bool PoolMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size) {
 
 	if (evt.type == SDL_KEYDOWN) {
 		if (evt.key.keysym.sym == SDLK_ESCAPE) {
 			SDL_SetRelativeMouseMode(SDL_FALSE);
 			return true;
-		} else if (evt.key.keysym.sym == SDLK_a) {
-			left.downs += 1;
-			left.pressed = true;
-			return true;
-		} else if (evt.key.keysym.sym == SDLK_d) {
-			right.downs += 1;
-			right.pressed = true;
-			return true;
-		} else if (evt.key.keysym.sym == SDLK_w) {
-			up.downs += 1;
-			up.pressed = true;
-			return true;
-		} else if (evt.key.keysym.sym == SDLK_s) {
-			down.downs += 1;
-			down.pressed = true;
+		} if (evt.key.keysym.sym == SDLK_w) {
+			cam_zoomin.downs += 1;
+			cam_zoomin.pressed = true;
 			return true;
 		}
-	} else if (evt.type == SDL_KEYUP) {
-		if (evt.key.keysym.sym == SDLK_a) {
-			left.pressed = false;
-			return true;
-		} else if (evt.key.keysym.sym == SDLK_d) {
-			right.pressed = false;
-			return true;
-		} else if (evt.key.keysym.sym == SDLK_w) {
-			up.pressed = false;
-			return true;
-		} else if (evt.key.keysym.sym == SDLK_s) {
-			down.pressed = false;
+		else if (evt.key.keysym.sym == SDLK_s)
+		{
+			cam_zoomout.downs += 1;
+			cam_zoomout.pressed = true;
 			return true;
 		}
-	} else if (evt.type == SDL_MOUSEBUTTONDOWN) {
-		if (SDL_GetRelativeMouseMode() == SDL_FALSE) {
-			SDL_SetRelativeMouseMode(SDL_TRUE);
+	}
+	else if (evt.type == SDL_KEYUP)
+	{
+		if (evt.key.keysym.sym == SDLK_w)
+		{
+			cam_zoomin.pressed = false;
 			return true;
 		}
-	} else if (evt.type == SDL_MOUSEMOTION) {
-		if (SDL_GetRelativeMouseMode() == SDL_TRUE) {
-			glm::vec2 motion = glm::vec2(
-				evt.motion.xrel / float(window_size.y),
-				-evt.motion.yrel / float(window_size.y)
-			);
-			camera->transform->rotation = glm::normalize(
-				camera->transform->rotation
-				* glm::angleAxis(-motion.x * camera->fovy, glm::vec3(0.0f, 1.0f, 0.0f))
-				* glm::angleAxis(motion.y * camera->fovy, glm::vec3(1.0f, 0.0f, 0.0f))
-			);
+		else if (evt.key.keysym.sym == SDLK_s)
+		{
+			cam_zoomout.pressed = false;
 			return true;
 		}
 	}
@@ -120,51 +121,25 @@ bool PoolMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 }
 
 void PoolMode::update(float elapsed) {
-
-	//slowly rotates through [0,1):
-	wobble += elapsed / 10.0f;
-	wobble -= std::floor(wobble);
-
-	hip->rotation = hip_base_rotation * glm::angleAxis(
-		glm::radians(5.0f * std::sin(wobble * 2.0f * float(M_PI))),
-		glm::vec3(0.0f, 1.0f, 0.0f)
-	);
-	upper_leg->rotation = upper_leg_base_rotation * glm::angleAxis(
-		glm::radians(7.0f * std::sin(wobble * 2.0f * 2.0f * float(M_PI))),
-		glm::vec3(0.0f, 0.0f, 1.0f)
-	);
-	lower_leg->rotation = lower_leg_base_rotation * glm::angleAxis(
-		glm::radians(10.0f * std::sin(wobble * 3.0f * 2.0f * float(M_PI))),
-		glm::vec3(0.0f, 0.0f, 1.0f)
-	);
-
 	//move camera:
 	{
-
 		//combine inputs into a move:
-		constexpr float PlayerSpeed = 30.0f;
+		constexpr float CameraSpeed = 30.0f;
 		glm::vec2 move = glm::vec2(0.0f);
-		if (left.pressed && !right.pressed) move.x =-1.0f;
-		if (!left.pressed && right.pressed) move.x = 1.0f;
-		if (down.pressed && !up.pressed) move.y =-1.0f;
-		if (!down.pressed && up.pressed) move.y = 1.0f;
-
-		//make it so that moving diagonally doesn't go faster:
-		if (move != glm::vec2(0.0f)) move = glm::normalize(move) * PlayerSpeed * elapsed;
+		if (cam_zoomout.pressed && !cam_zoomin.pressed) move.y = -1.0f;
+		if (!cam_zoomout.pressed && cam_zoomin.pressed) move.y = 1.0f;
 
 		glm::mat4x3 frame = camera->transform->make_local_to_parent();
 		glm::vec3 right = frame[0];
 		//glm::vec3 up = frame[1];
 		glm::vec3 forward = -frame[2];
 
-		camera->transform->position += move.x * right + move.y * forward;
+		camera->transform->position += move.y * forward;
 	}
 
 	//reset button press counters:
-	left.downs = 0;
-	right.downs = 0;
-	up.downs = 0;
-	down.downs = 0;
+	cam_zoomin.downs = 0;
+	cam_zoomout.downs = 0;
 }
 
 void PoolMode::draw(glm::uvec2 const &drawable_size) {

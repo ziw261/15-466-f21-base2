@@ -18,8 +18,8 @@ DIST=../dist
 all : \
 	$(DIST)/hexapod.pnct \
 	$(DIST)/hexapod.scene \
-	$(DIST)/city.pnct \
-	$(DIST)/city.scene \
+	$(DIST)/pool_ver2.pnct \
+	$(DIST)/pool_ver2.scene \
 
 
 $(DIST)/hexapod.scene : hexapod.blend $(EXPORT_SCENE)
@@ -28,8 +28,8 @@ $(DIST)/hexapod.scene : hexapod.blend $(EXPORT_SCENE)
 $(DIST)/hexapod.pnct : hexapod.blend $(EXPORT_MESHES)
 	$(BLENDER) --background --python $(EXPORT_MESHES) -- '$<':Main '$@'
 
-$(DIST)/city.scene : city.blend $(EXPORT_SCENE)
-	$(BLENDER) --background --python $(EXPORT_SCENE) -- '$<':Main '$@'
+$(DIST)/pool_ver2.scene : pool_ver2.blend $(EXPORT_SCENE)
+	$(BLENDER) --background --python $(EXPORT_SCENE) -- '$<':Table '$@'
 
-$(DIST)/city.pnct : city.blend $(EXPORT_MESHES)
-	$(BLENDER) --background --python $(EXPORT_MESHES) -- '$<':Main '$@'
+$(DIST)/pool_ver2.pnct : pool_ver2.blend $(EXPORT_MESHES)
+	$(BLENDER) --background --python $(EXPORT_MESHES) -- '$<':Table '$@'
