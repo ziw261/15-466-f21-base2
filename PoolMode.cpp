@@ -39,6 +39,14 @@ Load< Scene > pool_scene(LoadTagDefault, []() -> Scene const * {
 PoolMode::PoolMode() : scene(*pool_scene) {
 
 	loadObjects();
+	create_walls();
+
+	std::cout << "Wall: " <<
+		wall[0] << " " <<
+		wall[1] << " " <<
+		wall[2] << " " <<
+		wall[3] << " " <<
+		std::endl;
 
 	//get pointer to camera for convenience:
 	if (scene.cameras.size() != 1) throw std::runtime_error("Expecting scene to have exactly one camera, but it has " + std::to_string(scene.cameras.size()));
@@ -82,10 +90,40 @@ void PoolMode::loadObjects() {
 			balls.push_back(Ball(Ball_Color::Yellow, true, &transform));
 		else if (transform.name == "Player")
 			player = Player(&transform);
+		else if (transform.name == "Goal.N")
+			goals.push_back(Goal(&transform));
+		else if (transform.name == "Goal.NE")
+			goals.push_back(Goal(&transform));
+		else if (transform.name == "Goal.NW")
+			goals.push_back(Goal(&transform));
+		else if (transform.name == "Goal.S")
+			goals.push_back(Goal(&transform));
+		else if (transform.name == "Goal.SE")
+			goals.push_back(Goal(&transform));
+		else if (transform.name == "Goal.SW")
+			goals.push_back(Goal(&transform));
 	}
 
 	assert(player.transform != nullptr);
 	assert(balls.size() == 15);
+	assert(goals.size() == 6);
+}
+
+void PoolMode::create_walls() {
+	float xmin = FLT_MAX;
+	float xmax = FLT_MIN;
+	float ymin = FLT_MAX;
+	float ymax = FLT_MIN;
+
+	for (const auto& g : goals) {
+		glm::vec3 pos = g.transform->position;
+		xmin = xmin > pos.y ? pos.y : xmin;
+		xmax = xmax < pos.y ? pos.y : xmax;
+		ymin = ymin > pos.x ? pos.x : ymin;
+		ymax = ymax < pos.x ? pos.x : ymax;
+	}
+
+	wall = glm::vec4(xmin, xmax, ymin, ymax);
 }
 
 bool PoolMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size) {
@@ -163,26 +201,30 @@ void PoolMode::update(float elapsed) {
 	//update_player_collision();
 
 	//ball:
-	//update_balls_collision();
+	update_ball_movement(elapsed);
 
 	//camera:
 	update_camera(elapsed);
 
-	for(const auto& b : balls) {
-		if (check_collision_bp(b, player))
+	for(auto& b : balls) {
+		if (check_collision_bp(b, player)) {
 			std::cout << b.transform->name << " hit with player" << std::endl;
+			b.speed += 1.0f;
+			glm::vec3 dir = glm::normalize(b.transform->position - player.transform->position);
+			b.move_dir = glm::vec2(dir.y, dir.x);
+		}
+		check_collision_bw(b);
 	}
 }
 
 void PoolMode::update_player_movement(float elapsed) {
-	constexpr float PlayerSpeed = 1.0f;
 	glm::vec2 player_move = glm::vec2(0.0f);
 	if (up.pressed) player_move.y += 1.0f;
 	if (left.pressed) player_move.x += 1.0f;
 	if (down.pressed) player_move.y -= 1.0f;
 	if (right.pressed) player_move.x -= 1.0f;
 
-	if (player_move != glm::vec2(0.0f)) player_move = glm::normalize(player_move) * PlayerSpeed * elapsed;
+	if (player_move != glm::vec2(0.0f)) player_move = glm::normalize(player_move) * player_speed * elapsed;
 
 	glm::mat4x3 frame = player.transform->make_local_to_parent();
 	glm::vec3 forward_dir = frame[0];
@@ -194,12 +236,32 @@ void PoolMode::update_player_movement(float elapsed) {
 	left.downs = 0;
 	right.downs = 0;
 
+	//clamp player within table:
+	auto& pos = player.transform->position;
+	pos.x = std::max(pos.x, wall[2] + player.size.y * 0.5f);
+	pos.x = std::min(pos.x, wall[3] - player.size.y * 0.5f);
+	pos.y = std::max(pos.y, wall[0] + player.size.x * 0.5f);
+	pos.y = std::min(pos.y, wall[1] - player.size.x * 0.5f);
+
 	//if (player_move != glm::vec2(0.0f)) 	
 	//	std::cout << "Player Position: " <<
 	//		player.transform->position.x <<
 	//		" " << player.transform->position.y <<
 	//		" " << player.transform->position.z <<
 	//		std::endl;
+}
+
+void PoolMode::update_ball_movement(float elapsed) {
+	for (auto& b : balls) {
+		if (b.speed <= 0) continue;
+		glm::vec2 ball_move = b.move_dir * b.speed * elapsed;
+		glm::mat4x3 frame = b.transform->make_local_to_parent();
+		glm::vec3 forward_dir = frame[0];
+		glm::vec3 left_dir = frame[1];
+		b.transform->position += ball_move.x * left_dir + ball_move.y * forward_dir;
+		b.speed = b.speed ? b.speed - 0.05f : 0;
+		b.move_dir = b.speed ? b.move_dir : glm::vec2(0.0f);
+	}
 }
 
 void PoolMode::update_camera(float elapsed) {
@@ -232,6 +294,34 @@ bool PoolMode::check_collision_bp(const Ball& ball, const Player& player) {
 		return true;
 
 	return false;
+}
+
+void PoolMode::check_collision_bw(Ball& ball) {
+	auto& pos = ball.transform->position;
+	glm::vec2 n_up = glm::vec2(0, -1);
+	glm::vec2 n_down = glm::vec2(0, 1);
+	glm::vec2 n_left = glm::vec2(1, 0);
+	glm::vec2 n_right = glm::vec2(-1, 0);
+	if (pos.x > wall[3] - ball.size.y * 0.5f) {
+		pos.x = wall[3] - ball.size.y * 0.5f;
+		if (ball.speed > 0)
+			ball.move_dir = ball.move_dir - 2 * glm::dot(ball.move_dir, n_up) * n_up;
+	}
+	else if (pos.x < wall[2] + ball.size.y * 0.5f) {
+		pos.x = wall[2] + ball.size.y * 0.5f;
+		if (ball.speed > 0)
+			ball.move_dir = ball.move_dir - 2 * glm::dot(ball.move_dir, n_down) * n_down;
+	}
+	else if (pos.y > wall[1] - ball.size.x * 0.5f) {
+		pos.y = wall[1] - ball.size.x * 0.5f;
+		if (ball.speed > 0)
+			ball.move_dir = ball.move_dir - 2 * glm::dot(ball.move_dir, n_right) * n_right;
+	}
+	else if (pos.y < wall[0] + ball.size.x * 0.5f) {
+		pos.y = wall[0] + ball.size.x * 0.5f;
+		if (ball.speed > 0)
+			ball.move_dir = ball.move_dir - 2 * glm::dot(ball.move_dir, n_left) * n_left;
+	}
 }
 
 

@@ -28,6 +28,8 @@ struct Ball {
 	Ball_Color ball_color = Ball_Color::None;
 	bool is_flower = false;
 	Scene::Transform* transform = nullptr;
+	float speed = 0.0f;
+	glm::vec2 move_dir = glm::vec2(0.0f);
 	glm::vec3 size = glm::vec3(0.3f,0.3f,0.3f);
 };
 
@@ -57,7 +59,10 @@ struct PoolMode : Mode {
 	//----- game state -----
 
 	Player player;
+	float player_speed = 1.0f;
 	std::vector<Ball> balls;
+	std::vector<Goal> goals;
+	glm::vec4 wall = glm::vec4(0.0f);
 
 	//input tracking:
 	struct Button {
@@ -73,8 +78,11 @@ struct PoolMode : Mode {
 
 
 	void loadObjects();
+	void create_walls();
 	void update_player_movement(float elapsed);
+	void update_ball_movement(float elapsed);
 	void update_camera(float elapsed);
 	bool check_collision_bb(const Ball& b1, const Ball& b2);
 	bool check_collision_bp(const Ball& ball, const Player& player);
+	void check_collision_bw(Ball& ball);
 };
