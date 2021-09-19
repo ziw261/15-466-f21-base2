@@ -158,11 +158,20 @@ bool PoolMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 
 void PoolMode::update(float elapsed) {
 
-	//move player:
+	//player:
 	update_player_movement(elapsed);
+	//update_player_collision();
 
-	//move camera:
+	//ball:
+	//update_balls_collision();
+
+	//camera:
 	update_camera(elapsed);
+
+	for(const auto& b : balls) {
+		if (check_collision_bp(b, player))
+			std::cout << b.transform->name << " hit with player" << std::endl;
+	}
 }
 
 void PoolMode::update_player_movement(float elapsed) {
@@ -184,6 +193,13 @@ void PoolMode::update_player_movement(float elapsed) {
 	down.downs = 0;
 	left.downs = 0;
 	right.downs = 0;
+
+	//if (player_move != glm::vec2(0.0f)) 	
+	//	std::cout << "Player Position: " <<
+	//		player.transform->position.x <<
+	//		" " << player.transform->position.y <<
+	//		" " << player.transform->position.z <<
+	//		std::endl;
 }
 
 void PoolMode::update_camera(float elapsed) {
@@ -202,9 +218,22 @@ void PoolMode::update_camera(float elapsed) {
 	cam_zoomout.downs = 0;
 }
 
-void PoolMode::update_player_collision(glm::vec2 movement) {
-	//float xmin = player.transform->position - 
+bool PoolMode::check_collision_bb(const Ball& b1, const Ball& b2) {
+	float distance = glm::distance(b1.transform->position, b2.transform->position);
+	if (std::abs(distance) <= b1.size.x + 0.03f)
+		return true;
+		
+	return false;
 }
+
+bool PoolMode::check_collision_bp(const Ball& ball, const Player& player) {
+	float distance = glm::distance(ball.transform->position, player.transform->position);
+	if (std::abs(distance) <= ball.size.x + 0.03f)
+		return true;
+
+	return false;
+}
+
 
 void PoolMode::draw(glm::uvec2 const &drawable_size) {
 	//update camera aspect ratio for drawable:

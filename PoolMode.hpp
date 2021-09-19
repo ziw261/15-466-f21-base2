@@ -22,7 +22,6 @@ enum class Ball_Color {
 
 
 struct Ball {
-	
 	Ball(Ball_Color bc, bool isf, Scene::Transform* ts)
 		: ball_color(bc), is_flower(isf), transform(ts) {}
 
@@ -30,7 +29,6 @@ struct Ball {
 	bool is_flower = false;
 	Scene::Transform* transform = nullptr;
 	glm::vec3 size = glm::vec3(0.3f,0.3f,0.3f);
-	glm::vec4 collision_box = glm::vec4(0);
 };
 
 struct Player {
@@ -38,7 +36,13 @@ struct Player {
 	Player(Scene::Transform* ts) : transform(ts) {}
 	Scene::Transform* transform = nullptr;
 	glm::vec3 size = glm::vec3(0.3f, 0.3f, 0.2f);
-	glm::vec4 collision_box = glm::vec4(0);
+};
+
+struct Goal {
+	Goal () {}
+	Goal(Scene::Transform* ts) : transform(ts) {}
+	Scene::Transform* transform = nullptr;
+	glm::vec3 size = glm::vec3(0.8f, 0.8f, 0.02f);
 };
 
 struct PoolMode : Mode {
@@ -71,5 +75,6 @@ struct PoolMode : Mode {
 	void loadObjects();
 	void update_player_movement(float elapsed);
 	void update_camera(float elapsed);
-	void update_player_collision(glm::vec2(movement));
+	bool check_collision_bb(const Ball& b1, const Ball& b2);
+	bool check_collision_bp(const Ball& ball, const Player& player);
 };
