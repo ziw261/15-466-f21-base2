@@ -50,38 +50,41 @@ PoolMode::~PoolMode() {
 
 void PoolMode::loadObjects() {
 	for (auto& transform : scene.transforms) {
-		if (transform.name == "Black_Ball") 
-				balls.push_back(Ball(Ball_Color::Black, false, &transform));
-		else if (transform.name == "Blue_Ball") 
-				balls.push_back(Ball(Ball_Color::Blue, false, &transform));
-		else if	(transform.name == "Brown_Ball")
-				balls.push_back(Ball(Ball_Color::Brown, false, &transform));
+		if (transform.name == "Black_Ball")
+			balls.push_back(Ball(Ball_Color::Black, false, &transform));
+		else if (transform.name == "Blue_Ball")
+			balls.push_back(Ball(Ball_Color::Blue, false, &transform));
+		else if (transform.name == "Brown_Ball")
+			balls.push_back(Ball(Ball_Color::Brown, false, &transform));
 		else if (transform.name == "Blue_Flower")
-				balls.push_back(Ball(Ball_Color::Blue, true, &transform));
+			balls.push_back(Ball(Ball_Color::Blue, true, &transform));
 		else if (transform.name == "Brown_Flower")
-				balls.push_back(Ball(Ball_Color::Brown, true, &transform));
+			balls.push_back(Ball(Ball_Color::Brown, true, &transform));
 		else if (transform.name == "Green_Ball")
-				balls.push_back(Ball(Ball_Color::Green, false, &transform));
+			balls.push_back(Ball(Ball_Color::Green, false, &transform));
 		else if (transform.name == "Green_Flower")
-				balls.push_back(Ball(Ball_Color::Green, true, &transform));
+			balls.push_back(Ball(Ball_Color::Green, true, &transform));
 		else if (transform.name == "Orange_Ball")
-				balls.push_back(Ball(Ball_Color::Orange, false, &transform));
+			balls.push_back(Ball(Ball_Color::Orange, false, &transform));
 		else if (transform.name == "Orange_Flower")
-				balls.push_back(Ball(Ball_Color::Orange, true, &transform));
+			balls.push_back(Ball(Ball_Color::Orange, true, &transform));
 		else if (transform.name == "Pink_Ball")
-				balls.push_back(Ball(Ball_Color::Pink, false, &transform));
+			balls.push_back(Ball(Ball_Color::Pink, false, &transform));
 		else if (transform.name == "Pink_Flower")
-				balls.push_back(Ball(Ball_Color::Pink, true, &transform));
+			balls.push_back(Ball(Ball_Color::Pink, true, &transform));
 		else if (transform.name == "Red_Ball")
-				balls.push_back(Ball(Ball_Color::Red, false, &transform));
+			balls.push_back(Ball(Ball_Color::Red, false, &transform));
 		else if (transform.name == "Red_Flower")
-				balls.push_back(Ball(Ball_Color::Red, true, &transform));
+			balls.push_back(Ball(Ball_Color::Red, true, &transform));
 		else if (transform.name == "Yellow_Ball")
-				balls.push_back(Ball(Ball_Color::Yellow, false, &transform));
+			balls.push_back(Ball(Ball_Color::Yellow, false, &transform));
 		else if (transform.name == "Yellow_Flower")
 			balls.push_back(Ball(Ball_Color::Yellow, true, &transform));
+		else if (transform.name == "Player")
+			player = Player(&transform);
 	}
 
+	assert(player.transform != nullptr);
 	assert(balls.size() == 15);
 }
 
@@ -96,23 +99,56 @@ bool PoolMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			cam_zoomin.pressed = true;
 			return true;
 		}
-		else if (evt.key.keysym.sym == SDLK_s)
-		{
+		else if (evt.key.keysym.sym == SDLK_s) {
 			cam_zoomout.downs += 1;
 			cam_zoomout.pressed = true;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_UP) {
+			up.downs += 1;
+			up.pressed = true;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_LEFT) {
+			left.downs += 1;
+			left.pressed = true;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_DOWN) {
+			down.downs += 1;
+			down.pressed = true;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_RIGHT) {
+			right.downs += 1;
+			right.pressed = true;
 			return true;
 		}
 	}
 	else if (evt.type == SDL_KEYUP)
 	{
-		if (evt.key.keysym.sym == SDLK_w)
-		{
+		if (evt.key.keysym.sym == SDLK_w) {
 			cam_zoomin.pressed = false;
 			return true;
 		}
-		else if (evt.key.keysym.sym == SDLK_s)
-		{
+		else if (evt.key.keysym.sym == SDLK_s) {
 			cam_zoomout.pressed = false;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_UP) {
+			up.pressed = false;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_DOWN) {
+			down.pressed = false;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_LEFT) {
+			left.pressed = false;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_RIGHT) {
+			right.pressed = false;
 			return true;
 		}
 	}
@@ -121,23 +157,53 @@ bool PoolMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 }
 
 void PoolMode::update(float elapsed) {
+
+	//move player:
+	update_player_movement(elapsed);
+
 	//move camera:
-	{
-		//combine inputs into a move:
-		glm::vec2 move = glm::vec2(0.0f);
-		if (cam_zoomout.pressed && !cam_zoomin.pressed) move.y = -1.0f;
-		if (!cam_zoomout.pressed && cam_zoomin.pressed) move.y = 1.0f;
+	update_camera(elapsed);
+}
 
-		glm::mat4x3 frame = camera->transform->make_local_to_parent();
-		//glm::vec3 up = frame[1];
-		glm::vec3 forward = -frame[2];
+void PoolMode::update_player_movement(float elapsed) {
+	constexpr float PlayerSpeed = 1.0f;
+	glm::vec2 player_move = glm::vec2(0.0f);
+	if (up.pressed) player_move.y += 1.0f;
+	if (left.pressed) player_move.x += 1.0f;
+	if (down.pressed) player_move.y -= 1.0f;
+	if (right.pressed) player_move.x -= 1.0f;
 
-		camera->transform->position += move.y * forward;
-	}
+	if (player_move != glm::vec2(0.0f)) player_move = glm::normalize(player_move) * PlayerSpeed * elapsed;
 
-	//reset button press counters:
+	glm::mat4x3 frame = player.transform->make_local_to_parent();
+	glm::vec3 forward_dir = frame[0];
+	glm::vec3 left_dir = frame[1];
+	player.transform->position += player_move.x * left_dir + player_move.y * forward_dir;
+
+	up.downs = 0;
+	down.downs = 0;
+	left.downs = 0;
+	right.downs = 0;
+}
+
+void PoolMode::update_camera(float elapsed) {
+	//combine inputs into a move:
+	glm::vec2 cam_move = glm::vec2(0.0f);
+	if (cam_zoomout.pressed && !cam_zoomin.pressed) cam_move.y = -1.0f;
+	if (!cam_zoomout.pressed && cam_zoomin.pressed) cam_move.y = 1.0f;
+
+	glm::mat4x3 frame = camera->transform->make_local_to_parent();
+	//glm::vec3 up = frame[1];
+	glm::vec3 forward = -frame[2];
+
+	camera->transform->position += cam_move.y * forward;
+
 	cam_zoomin.downs = 0;
 	cam_zoomout.downs = 0;
+}
+
+void PoolMode::update_player_collision(glm::vec2 movement) {
+	//float xmin = player.transform->position - 
 }
 
 void PoolMode::draw(glm::uvec2 const &drawable_size) {

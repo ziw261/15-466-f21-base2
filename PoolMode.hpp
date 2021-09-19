@@ -29,11 +29,16 @@ struct Ball {
 	Ball_Color ball_color = Ball_Color::None;
 	bool is_flower = false;
 	Scene::Transform* transform = nullptr;
+	glm::vec3 size = glm::vec3(0.3f,0.3f,0.3f);
+	glm::vec4 collision_box = glm::vec4(0);
 };
 
 struct Player {
-	Scene::Transform* transform;
-
+	Player() {}
+	Player(Scene::Transform* ts) : transform(ts) {}
+	Scene::Transform* transform = nullptr;
+	glm::vec3 size = glm::vec3(0.3f, 0.3f, 0.2f);
+	glm::vec4 collision_box = glm::vec4(0);
 };
 
 struct PoolMode : Mode {
@@ -47,6 +52,7 @@ struct PoolMode : Mode {
 
 	//----- game state -----
 
+	Player player;
 	std::vector<Ball> balls;
 
 	//input tracking:
@@ -63,5 +69,7 @@ struct PoolMode : Mode {
 
 
 	void loadObjects();
-
+	void update_player_movement(float elapsed);
+	void update_camera(float elapsed);
+	void update_player_collision(glm::vec2(movement));
 };
