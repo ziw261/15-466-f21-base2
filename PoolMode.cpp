@@ -311,7 +311,7 @@ void PoolMode::update_ball_movement(float elapsed) {
 		glm::vec3 rotate_axis = glm::normalize(glm::cross(real_dir, glm::vec3(0,0,1)));
 		float angle = (distance / (b.size.x * 0.5f));
 		b.transform->rotation =
-			glm::normalize(b.transform->rotation * glm::angleAxis(angle, rotate_axis));
+			glm::angleAxis(angle, rotate_axis) * b.transform->rotation;
 	}
 }
 
