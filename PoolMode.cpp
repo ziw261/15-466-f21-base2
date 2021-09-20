@@ -12,6 +12,9 @@
 
 #include <random>
 
+static std::mt19937 mt(std::random_device{}());
+
+
 GLuint pool_meshes_for_lit_color_texture_program = 0;
 Load< MeshBuffer > hexapod_meshes(LoadTagDefault, []() -> MeshBuffer const * {
 	MeshBuffer const *ret = new MeshBuffer(data_path("pool_ver2.pnct"));
@@ -40,6 +43,7 @@ PoolMode::PoolMode() : scene(*pool_scene) {
 
 	loadObjects();
 	create_walls();
+	pick_next_target();
 
 	std::cout << "Wall: " <<
 		wall[0] << " " <<
@@ -196,9 +200,11 @@ bool PoolMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 
 void PoolMode::update(float elapsed) {
 
+	// GameState
+	if (update_gamestate()) return;
+
 	//player:
 	update_player_movement(elapsed);
-	//update_player_collision();
 
 	//ball:
 	update_ball_movement(elapsed);
@@ -206,13 +212,55 @@ void PoolMode::update(float elapsed) {
 	//camera:
 	update_camera(elapsed);
 
+	//collision
+	reset_collision_cooldown();
+
 	for(auto& b : balls) {
 		check_collision_bb(b);
 		check_collision_bp(b, player);
 		check_collision_bw(b);
 	}
 
-	reset_collision_cooldown();
+	// Hit Goal and delete this ball
+	for (size_t i=0; i<balls.size(); i++) {
+		if (check_collision_bg(balls[i])) {
+			if (i != next_target_idx) {
+				//std::cout << "Game Over" << std::endl;
+				is_game_over = true;
+			}
+			else {
+				std::swap(balls[i], balls[balls.size()-1]);
+				balls.pop_back();
+				for (auto it = scene.drawables.begin(); it != scene.drawables.end(); ++it) {
+					if ((*it).transform->name == next_target) {
+						scene.drawables.erase(it);
+					}
+				}
+				if (balls.size() != 0)
+					pick_next_target();
+				else
+					is_game_over = true;
+			}
+		}
+	}
+}
+
+bool PoolMode::update_gamestate() {
+	if (is_game_over) {
+		if (balls.size() != 0) {
+			next_target = "You lose! Press R to restart.";
+		}
+		else {
+			next_target = "You win! Press R to play again.";
+		}
+		return false;
+	}
+	return false;
+}
+
+void PoolMode::pick_next_target() {
+	next_target_idx = mt() % (balls.size());
+	next_target = balls[next_target_idx].transform->name;
 }
 
 void PoolMode::update_player_movement(float elapsed) {
@@ -368,6 +416,16 @@ void PoolMode::check_collision_bw(Ball& ball) {
 	}
 }
 
+bool PoolMode::check_collision_bg(Ball& ball) {
+	for (auto& g : goals) {
+		float distance = glm::distance(ball.transform->position, g.transform->position);
+		if (distance <= g.size.x * 0.5f + ball.size.x * 0.5f) {
+			return true;
+		}
+	}
+	return false;
+}
+
 
 void PoolMode::draw(glm::uvec2 const &drawable_size) {
 	//update camera aspect ratio for drawable:
@@ -403,12 +461,14 @@ void PoolMode::draw(glm::uvec2 const &drawable_size) {
 		));
 
 		constexpr float H = 0.09f;
-		lines.draw_text("Mouse motion rotates camera; WASD moves; escape ungrabs mouse",
+		lines.draw_text("Next target: " + next_target,
+		//lines.draw_text("Mouse motion rotates camera; WASD moves; escape ungrabs mouse",
 			glm::vec3(-aspect + 0.1f * H, -1.0 + 0.1f * H, 0.0),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0x00, 0x00, 0x00, 0x00));
 		float ofs = 2.0f / drawable_size.y;
-		lines.draw_text("Mouse motion rotates camera; WASD moves; escape ungrabs mouse",
+		lines.draw_text("Next target: " + next_target,
+		//lines.draw_text("Mouse motion rotates camera; WASD moves; escape ungrabs mouse",
 			glm::vec3(-aspect + 0.1f * H + ofs, -1.0 + + 0.1f * H + ofs, 0.0),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0xff, 0xff, 0xff, 0x00));

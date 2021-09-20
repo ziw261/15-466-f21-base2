@@ -147,6 +147,12 @@ int main(int argc, char **argv) {
 					}
 					save_png(filename, glm::uvec2(w,h), data.data(), LowerLeftOrigin);
 				}
+				else if (evt.type == SDL_KEYDOWN && evt.key.keysym.sym == SDLK_r
+					&& std::dynamic_pointer_cast<PoolMode> (Mode::current)->is_game_over)
+				{
+					Mode::set_current(nullptr);
+					Mode::set_current(std::make_shared< PoolMode >());
+				}
 			}
 			if (!Mode::current) break;
 		}

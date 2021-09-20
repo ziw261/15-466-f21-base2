@@ -8,9 +8,10 @@
 #include <deque>
 
 #define SPEED_DECAY 1
-#define BALL_SPEED 1.0f
+#define BALL_SPEED 0.7f
 #define COLLISION_OFFSET 0.01f
-#define PLAYER_SPEED 1.5f;
+#define PLAYER_SPEED 1.2f;
+
 
 
 enum class Ball_Color {
@@ -69,6 +70,9 @@ struct PoolMode : Mode {
 	std::vector<Ball> balls;
 	std::vector<Goal> goals;
 	glm::vec4 wall = glm::vec4(0.0f);
+	size_t next_target_idx = 0;
+	std::string next_target = "";
+	bool is_game_over = false;
 
 	//input tracking:
 	struct Button {
@@ -88,8 +92,11 @@ struct PoolMode : Mode {
 	void update_player_movement(float elapsed);
 	void update_ball_movement(float elapsed);
 	void update_camera(float elapsed);
+	bool update_gamestate();
+	void pick_next_target();
 	void reset_collision_cooldown();
 	void check_collision_bb(Ball& b1);
 	void check_collision_bp(Ball& ball, const Player& player);
 	void check_collision_bw(Ball& ball);
+	bool check_collision_bg(Ball& ball);
 };
