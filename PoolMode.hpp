@@ -83,6 +83,6 @@ struct PoolMode : Mode {
 	void update_ball_movement(float elapsed);
 	void update_camera(float elapsed);
 	bool check_collision_bb(const Ball& b1, const Ball& b2);
-	bool check_collision_bp(const Ball& ball, const Player& player);
+	void check_collision_bp(Ball& ball, const Player& player);
 	void check_collision_bw(Ball& ball);
 };

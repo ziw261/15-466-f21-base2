@@ -207,12 +207,7 @@ void PoolMode::update(float elapsed) {
 	update_camera(elapsed);
 
 	for(auto& b : balls) {
-		if (check_collision_bp(b, player)) {
-			std::cout << b.transform->name << " hit with player" << std::endl;
-			b.speed += 1.0f;
-			glm::vec3 dir = glm::normalize(b.transform->position - player.transform->position);
-			b.move_dir = glm::vec2(dir.y, dir.x);
-		}
+		check_collision_bp(b, player);
 		check_collision_bw(b);
 	}
 }
@@ -288,12 +283,13 @@ bool PoolMode::check_collision_bb(const Ball& b1, const Ball& b2) {
 	return false;
 }
 
-bool PoolMode::check_collision_bp(const Ball& ball, const Player& player) {
+void PoolMode::check_collision_bp(Ball& ball, const Player& player) {
 	float distance = glm::distance(ball.transform->position, player.transform->position);
-	if (std::abs(distance) <= ball.size.x + 0.03f)
-		return true;
-
-	return false;
+	if (std::abs(distance) <= ball.size.x + 0.03f) {
+		ball.speed += 1.0f;
+		glm::vec3 dir = glm::normalize(ball.transform->position - player.transform->position);
+		ball.move_dir = glm::vec2(dir.y, dir.x);
+	}
 }
 
 void PoolMode::check_collision_bw(Ball& ball) {
