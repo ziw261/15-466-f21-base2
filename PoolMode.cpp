@@ -272,10 +272,8 @@ void PoolMode::update_player_movement(float elapsed) {
 
 	if (player_move != glm::vec2(0.0f)) player_move = glm::normalize(player_move) * player_speed * elapsed;
 
-	glm::mat4x3 frame = player.transform->make_local_to_parent();
-	glm::vec3 forward_dir = frame[0];
-	glm::vec3 left_dir = frame[1];
-	player.transform->position += player_move.x * left_dir + player_move.y * forward_dir;
+	glm::vec3 movement = glm::vec3(player_move.y, player_move.x, 0);
+	player.transform->position += movement;
 
 	up.downs = 0;
 	down.downs = 0;
@@ -301,12 +299,19 @@ void PoolMode::update_ball_movement(float elapsed) {
 	for (auto& b : balls) {
 		if (b.speed <= 0) continue;
 		glm::vec2 ball_move = b.move_dir * b.speed * elapsed;
-		glm::mat4x3 frame = b.transform->make_local_to_parent();
-		glm::vec3 forward_dir = frame[0];
-		glm::vec3 left_dir = frame[1];
-		b.transform->position += ball_move.x * left_dir + ball_move.y * forward_dir;
+		glm::vec3 old_pos = b.transform->position;
+		glm::vec3 movement = glm::vec3(ball_move.y, ball_move.x, 0);
+		b.transform->position += movement;
 		b.speed = b.speed ? b.speed - SPEED_DECAY * elapsed : 0;
 		b.move_dir = b.speed ? b.move_dir : glm::vec2(0.0f);
+
+
+		float distance = glm::length(movement);
+		glm::vec3 real_dir = glm::normalize(old_pos - b.transform->position);
+		glm::vec3 rotate_axis = glm::normalize(glm::cross(real_dir, glm::vec3(0,0,1)));
+		float angle = (distance / (b.size.x * 0.5f));
+		b.transform->rotation =
+			glm::normalize(b.transform->rotation * glm::angleAxis(angle, rotate_axis));
 	}
 }
 
