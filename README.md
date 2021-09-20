@@ -1,8 +1,8 @@
-# (TODO: your game's title)
+# Not Rocket League
 
-Author: (TODO: your name)
+Author: Zi Wang (ziw2)
 
-Design: (TODO: In two sentences or fewer, describe what is new and interesting about your game.)
+Design: The player needs to control the car to push the right ball in to the goal area according to the indication on the bottom left side. 
 
 Screen Shot:
 
@@ -10,9 +10,11 @@ Screen Shot:
 
 How To Play:
 
-(TODO: describe the controls and (if needed) goals/strategy.)
+W/S for camera zoom in and zoom out./
+Arrow keys to control the movement./
+R to reset the game after winning/losing the game.
 
-Sources: (TODO: list a source URL for any assets you did not create yourself. Make sure you have a license for the asset.)
+Sources:  pool.blend -- Jim McCann
 
 This game was built with [NEST](NEST.md).
 
