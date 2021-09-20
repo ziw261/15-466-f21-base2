@@ -207,9 +207,12 @@ void PoolMode::update(float elapsed) {
 	update_camera(elapsed);
 
 	for(auto& b : balls) {
+		check_collision_bb(b);
 		check_collision_bp(b, player);
 		check_collision_bw(b);
 	}
+
+	reset_collision_cooldown();
 }
 
 void PoolMode::update_player_movement(float elapsed) {
@@ -254,7 +257,7 @@ void PoolMode::update_ball_movement(float elapsed) {
 		glm::vec3 forward_dir = frame[0];
 		glm::vec3 left_dir = frame[1];
 		b.transform->position += ball_move.x * left_dir + ball_move.y * forward_dir;
-		b.speed = b.speed ? b.speed - 0.05f : 0;
+		b.speed = b.speed ? b.speed - SPEED_DECAY * elapsed : 0;
 		b.move_dir = b.speed ? b.move_dir : glm::vec2(0.0f);
 	}
 }
@@ -275,20 +278,65 @@ void PoolMode::update_camera(float elapsed) {
 	cam_zoomout.downs = 0;
 }
 
-bool PoolMode::check_collision_bb(const Ball& b1, const Ball& b2) {
-	float distance = glm::distance(b1.transform->position, b2.transform->position);
-	if (std::abs(distance) <= b1.size.x + 0.03f)
-		return true;
-		
-	return false;
+void PoolMode::reset_collision_cooldown() {
+	for (size_t i = 0; i < balls.size(); i++) {
+		for (size_t j = 0; j < balls.size(); j++) {
+			if (i == j) continue;
+			float distance = glm::distance(balls[i].transform->position, balls[j].transform->position);
+			if (std::abs(distance) > balls[i].size.x + COLLISION_OFFSET) {
+				balls[i].is_in_collision = false;
+				balls[j].is_in_collision = false;
+			}
+			else if (std::abs(distance) <= balls[i].size.x - COLLISION_OFFSET){
+				if (balls[i].speed <= 0 && balls[j].speed <= 0) {
+					balls[i].is_in_collision = true;
+					balls[j].is_in_collision = true;
+
+					glm::vec3 dir = glm::normalize(balls[i].transform->position - balls[j].transform->position);
+					balls[i].move_dir = glm::vec2(dir.y, dir.x);
+					balls[i].speed = BALL_SPEED;
+					balls[j].move_dir = -balls[i].move_dir;
+					balls[j].speed = BALL_SPEED;
+				}
+			}
+		}
+	}
+}
+
+void PoolMode::check_collision_bb(Ball& b1) {
+	if (b1.speed <= 0) return;
+	if (b1.is_in_collision) return;
+	for (auto& b2 : balls) {
+		if (b2.is_in_collision) continue;
+		float distance = glm::distance(b1.transform->position, b2.transform->position);
+		if (std::abs(distance) <= b1.size.x + COLLISION_OFFSET) {
+			if (b2.speed <= 0) {
+				glm::vec3 dir = glm::normalize(b2.transform->position - b1.transform->position);
+				b2.move_dir = glm::vec2(dir.y, dir.x);
+				b2.speed = BALL_SPEED;
+
+				b1.move_dir -= glm::dot(b2.move_dir, b1.move_dir) * b2.move_dir;
+				b1.speed *= glm::length(b1.move_dir);
+				b1.move_dir = glm::normalize(b1.move_dir);
+			}
+			else {
+				glm::vec2 temp = b2.move_dir;
+				b2.move_dir = b1.move_dir;
+				b1.move_dir = temp;
+			}
+			b1.is_in_collision = true;
+			b2.is_in_collision = true;
+		}
+	}
 }
 
 void PoolMode::check_collision_bp(Ball& ball, const Player& player) {
 	float distance = glm::distance(ball.transform->position, player.transform->position);
-	if (std::abs(distance) <= ball.size.x + 0.03f) {
-		ball.speed += 1.0f;
+	if (std::abs(distance) <= ball.size.x + COLLISION_OFFSET) {
+		ball.speed += BALL_SPEED;
 		glm::vec3 dir = glm::normalize(ball.transform->position - player.transform->position);
 		ball.move_dir = glm::vec2(dir.y, dir.x);
+		ball.is_in_collision = true;
 	}
 }
 

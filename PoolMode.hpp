@@ -7,6 +7,11 @@
 #include <vector>
 #include <deque>
 
+#define SPEED_DECAY 1
+#define BALL_SPEED 1.0f
+#define COLLISION_OFFSET 0.01f
+#define PLAYER_SPEED 1.5f;
+
 
 enum class Ball_Color {
 	None,
@@ -31,6 +36,7 @@ struct Ball {
 	float speed = 0.0f;
 	glm::vec2 move_dir = glm::vec2(0.0f);
 	glm::vec3 size = glm::vec3(0.3f,0.3f,0.3f);
+	bool is_in_collision = false;
 };
 
 struct Player {
@@ -59,7 +65,7 @@ struct PoolMode : Mode {
 	//----- game state -----
 
 	Player player;
-	float player_speed = 1.0f;
+	float player_speed = PLAYER_SPEED;
 	std::vector<Ball> balls;
 	std::vector<Goal> goals;
 	glm::vec4 wall = glm::vec4(0.0f);
@@ -82,7 +88,8 @@ struct PoolMode : Mode {
 	void update_player_movement(float elapsed);
 	void update_ball_movement(float elapsed);
 	void update_camera(float elapsed);
-	bool check_collision_bb(const Ball& b1, const Ball& b2);
+	void reset_collision_cooldown();
+	void check_collision_bb(Ball& b1);
 	void check_collision_bp(Ball& ball, const Player& player);
 	void check_collision_bw(Ball& ball);
 };
