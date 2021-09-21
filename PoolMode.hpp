@@ -73,6 +73,7 @@ struct PoolMode : Mode {
 	size_t next_target_idx = 0;
 	std::string next_target = "";
 	bool is_game_over = false;
+	float correct_z = 0.0f;
 
 	//input tracking:
 	struct Button {
@@ -85,6 +86,9 @@ struct PoolMode : Mode {
 	
 	//camera:
 	Scene::Camera *camera = nullptr;
+
+	//light:
+	Scene::Light* light = nullptr;
 
 
 	void loadObjects();
@@ -99,4 +103,5 @@ struct PoolMode : Mode {
 	void check_collision_bp(Ball& ball, const Player& player);
 	void check_collision_bw(Ball& ball);
 	bool check_collision_bg(Ball& ball);
+	void z_correction();
 };

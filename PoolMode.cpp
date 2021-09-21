@@ -43,18 +43,22 @@ PoolMode::PoolMode() : scene(*pool_scene) {
 
 	loadObjects();
 	create_walls();
+	correct_z = balls[0].transform->position.z;
 	pick_next_target();
 
-	std::cout << "Wall: " <<
-		wall[0] << " " <<
-		wall[1] << " " <<
-		wall[2] << " " <<
-		wall[3] << " " <<
-		std::endl;
+	//std::cout << "Wall: " <<
+	//	wall[0] << " " <<
+	//	wall[1] << " " <<
+	//	wall[2] << " " <<
+	//	wall[3] << " " <<
+	//	std::endl;
 
 	//get pointer to camera for convenience:
 	if (scene.cameras.size() != 1) throw std::runtime_error("Expecting scene to have exactly one camera, but it has " + std::to_string(scene.cameras.size()));
 	camera = &scene.cameras.front();
+
+	light = &scene.lights.front();
+	assert(light != nullptr);
 }
 
 PoolMode::~PoolMode() {
@@ -208,6 +212,7 @@ void PoolMode::update(float elapsed) {
 
 	//ball:
 	update_ball_movement(elapsed);
+	z_correction();
 
 	//camera:
 	update_camera(elapsed);
@@ -242,6 +247,13 @@ void PoolMode::update(float elapsed) {
 					is_game_over = true;
 			}
 		}
+	}
+}
+
+void PoolMode::z_correction() {
+	for (auto& b: balls) {
+		if (b.transform->position.z != correct_z)
+			b.transform->position.z = correct_z;
 	}
 }
 
@@ -437,11 +449,11 @@ void PoolMode::draw(glm::uvec2 const &drawable_size) {
 	camera->aspect = float(drawable_size.x) / float(drawable_size.y);
 
 	//set up light type and position for lit_color_texture_program:
-	// TODO: consider using the Light(s) in the scene to do this
+	// Inspired by Martin Ke's setup
 	glUseProgram(lit_color_texture_program->program);
-	glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, 1);
-	glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 0.0f,-1.0f)));
-	glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(glm::vec3(1.0f, 1.0f, 0.95f)));
+	glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, light->type);
+	glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3, 1, glm::value_ptr(glm::eulerAngles(light->transform->rotation) * -1.0f));
+	glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(light->energy));
 	glUseProgram(0);
 
 	glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
